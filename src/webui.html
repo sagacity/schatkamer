@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=1920,initial-scale=1">
+<title>Schatkamer</title>
+<style>
+:root{--bg:#0b0d12;--panel:#151a24;--panel2:#1c2130;--ink:#f2f4ff;--muted:#9aa3b8;--accent:#ffb347}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:24px system-ui,sans-serif;overflow:hidden}
+header{position:fixed;left:0;right:0;top:0;height:150px;padding:66px 96px 0;background:linear-gradient(var(--bg) 70%,rgba(11,13,18,0));z-index:5}
+.mark{font-size:52px;font-weight:600}.mark span{color:var(--accent)}
+.screen{position:fixed;inset:0;display:none}.screen.on{display:block}
+#hints{position:fixed;right:96px;bottom:36px;display:flex;gap:40px;color:var(--muted);font-size:22px;z-index:6}
+#hints span{display:inline-flex;align-items:center;gap:8px}#hints i{font-style:normal}.glyph{vertical-align:middle;margin:0 2px}
+#status{position:fixed;left:96px;bottom:44px;font-size:24px;color:var(--accent);z-index:6}
+/* home */
+#rows{position:absolute;left:0;right:0;top:170px;transition:transform .25s ease-out}
+.row{height:300px;position:relative}
+.row h2{margin:0 96px;font-size:22px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.row.focus h2{color:var(--ink)}
+.shelf{position:absolute;left:96px;top:44px;white-space:nowrap;transition:transform .25s ease-out}
+.tile{display:inline-block;width:320px;margin-right:28px;vertical-align:top}
+.pic{width:320px;height:180px;border-radius:10px;background:var(--panel2) center/cover no-repeat;position:relative;outline:6px solid transparent;outline-offset:4px;transition:outline-color .15s,transform .15s}
+.tile.focus .pic{outline-color:var(--accent);transform:scale(1.04)}
+.badge{position:absolute;left:10px;top:10px;padding:3px 10px;border-radius:7px;background:rgba(0,0,0,.65);font-size:15px;font-weight:600;letter-spacing:.05em}
+.tile .t{margin-top:14px;font-size:22px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.focus .t{color:var(--ink)}
+/* search */
+#q{position:absolute;left:96px;top:176px;width:900px;height:68px;padding:0 24px;border-radius:14px;border:4px solid transparent;background:var(--panel);color:var(--ink);font-size:30px;outline:none}
+#q.focus{border-color:var(--accent)}
+#keyhelp{position:absolute;left:96px;top:280px;width:900px;color:var(--muted);font-size:24px;line-height:1.6}
+.label{position:absolute;font-size:18px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
+#recent{position:absolute;left:1060px;top:236px;width:764px}
+.pick{padding:16px 26px;margin-bottom:6px;border-radius:10px;background:var(--panel);border-left:8px solid transparent;font-size:26px}
+.pick.focus{border-left-color:var(--accent);background:#2a2720}
+/* list */
+#listbox{position:absolute;left:96px;top:236px;width:940px;height:730px;overflow:hidden;border-radius:14px;background:var(--panel)}
+#items{position:absolute;left:0;right:0;top:0;padding:14px;transition:transform .2s ease-out}
+.item{display:flex;align-items:center;gap:18px;height:112px;margin-bottom:6px;padding:0 12px;border-radius:10px;border-left:8px solid transparent}
+.item.focus{background:#2a2720;border-left-color:var(--accent)}
+.item .pic{width:176px;height:99px;flex:none;outline:none}
+.item .txt{min-width:0}
+.item .t{font-size:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .m{font-size:19px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#detail{position:absolute;left:1100px;top:236px;width:724px}
+#detail .pic{width:640px;height:360px;outline:none}
+#detail h1{font-size:32px;margin:22px 0 6px;line-height:1.2;max-height:2.4em;overflow:hidden}
+#detail .m{color:var(--accent);font-size:22px}
+#detail p{color:var(--muted);font-size:21px;line-height:1.38;margin:12px 0 0;display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden}
+#listtitle{left:96px;top:200px}#sort{right:96px;left:auto;top:200px;color:var(--accent)}
+/* player */
+#player{position:fixed;inset:0;background:#000;display:none;z-index:10}
+#player.on{display:block}
+#v{width:100%;height:100%}
+#bar{position:absolute;left:0;right:0;bottom:0;padding:120px 96px 64px;background:linear-gradient(transparent,rgba(0,0,0,.85));opacity:0;transition:opacity .3s}
+#bar.on{opacity:1}
+#ptitle{font-size:34px;font-weight:600;margin-bottom:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#prow{display:flex;align-items:center;gap:28px}
+#state{width:36px;height:36px;flex:none}
+#track{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.25);position:relative}
+#fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--accent);width:0}
+#knob{position:absolute;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#fff;left:0}
+#time{font-size:24px;color:#d6dbea;font-variant-numeric:tabular-nums}
+#pmsg{position:absolute;left:0;right:0;top:46%;text-align:center;font-size:28px;color:var(--muted)}
+.spin{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px;border-radius:50%;border:4px solid #2a3040;border-top-color:var(--accent);animation:r 1s linear infinite;display:none}
+.spin.on{display:block}
+@keyframes r{to{transform:rotate(360deg)}}
+</style></head><body>
+<header><div class="mark">Schat<span>kamer</span></div></header>
+
+<div id="home" class="screen"><div id="rows"></div><div id="homemsg" class="label" style="left:96px;top:240px;font-size:28px;letter-spacing:0"></div></div>
+
+<div id="search" class="screen">
+  <input id="q" type="search" placeholder="Search the archive..." autocomplete="off" enterkeyhint="search">
+  <div id="keyhelp"></div>
+  <div class="label" style="left:1060px;top:200px">RECENT SEARCHES</div>
+  <div id="recent"></div>
+</div>
+
+<div id="list" class="screen">
+  <div id="listtitle" class="label"></div><div id="sort" class="label"></div>
+  <div id="listbox"><div id="items"></div></div>
+  <div id="detail"><div class="pic"></div><h1></h1><div class="m"></div><p></p></div>
+</div>
+
+<div id="player"><video id="v" playsinline></video><div id="pmsg"></div><div id="pspin" class="spin"></div>
+  <div id="bar"><div id="ptitle"></div><div id="prow"><svg id="state" viewBox="0 0 36 36"></svg><div id="track"><div id="fill"></div><div id="knob"></div></div><div id="time"></div></div></div>
+</div>
+
+<div id="status"></div><div id="hints"></div>
+<script src="/shaka.js"></script>
+<script>
+(function(){
+var LICENSE='https://playready.ezdrm.com/cency/preauth.aspx?pX=164FB4';
+var SORTS=[{v:'',search:'Relevance',folder:'Default'},{v:'newest',search:'Newest first',folder:'Newest first'},{v:'oldest',search:'Oldest first',folder:'Oldest first'}];
+var $=function(i){return document.getElementById(i)};
+function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
+function esc(u){return u?'url("'+u.replace(/"/g,'%22')+'")':''}
+function report(x){new Image().src='/report?'+encodeURIComponent(x)}
+function json(url){return fetch(url).then(function(r){if(!r.ok)return r.text().then(function(t){throw Error(t||('HTTP '+r.status))});return r.json()})}
+function meta(it){return [it.series,it.date,it.broadcaster].filter(Boolean).join('  -  ')}
+function badge(p){return p.indexOf('/verhaal/')===0?'STORY':p.indexOf('/omroep/')===0?'BROADCASTER':p.indexOf('/persoon/')===0?'PERSON':'SERIES'}
+function fixTitle(it){if(it.title==='Geen afleveringstitel')it.title=it.series?it.series+' '+it.date:it.date;return it}
+
+var mode='home',back=[];          // the screen stack below the current one
+var rows=[],row=0;
+var list={items:[],focus:0,key:'',search:true,title:'',page:1,more:false,loading:false,sort:0,gen:0,version:0};
+var recent=[];try{recent=JSON.parse(localStorage.getItem('recent')||'[]')}catch(e){}
+var searchFocus='field',recentFocus=0;
+
+function status(t){$('status').textContent=t||''}
+// Controller glyphs as inline SVG; an icon name or a pair such as 'left right'.
+var GLYPH={
+  cross:'<circle cx="20" cy="20" r="18" fill="#1d2433" stroke="#6f93e0" stroke-width="2"/><path d="M12 12L28 28M28 12L12 28" stroke="#6f93e0" stroke-width="3.4" stroke-linecap="round" fill="none"/>',
+  circle:'<circle cx="20" cy="20" r="18" fill="#1d2433" stroke="#e5605b" stroke-width="2"/><circle cx="20" cy="20" r="8" stroke="#e5605b" stroke-width="3.4" fill="none"/>',
+  square:'<circle cx="20" cy="20" r="18" fill="#1d2433" stroke="#d98ac4" stroke-width="2"/><rect x="12" y="12" width="16" height="16" rx="1.5" stroke="#d98ac4" stroke-width="3.4" fill="none"/>',
+  triangle:'<circle cx="20" cy="20" r="18" fill="#1d2433" stroke="#58c4a1" stroke-width="2"/><path d="M20 10.5L29.5 27H10.5Z" stroke="#58c4a1" stroke-width="3.4" stroke-linejoin="round" fill="none"/>',
+  options:'<rect x="3" y="7" width="34" height="26" rx="13" fill="#1d2433" stroke="#c8cfe0" stroke-width="2"/><path d="M12 15H28M12 20H28M12 25H28" stroke="#c8cfe0" stroke-width="2.6" stroke-linecap="round"/>',
+  l1:'<rect x="2" y="7" width="36" height="26" rx="9" fill="#1d2433" stroke="#c8cfe0" stroke-width="2"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#c8cfe0">L1</text>',
+  r2:'<rect x="2" y="7" width="36" height="26" rx="9" fill="#1d2433" stroke="#c8cfe0" stroke-width="2"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#c8cfe0">R2</text>',
+  r1:'<rect x="2" y="7" width="36" height="26" rx="9" fill="#1d2433" stroke="#c8cfe0" stroke-width="2"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#c8cfe0">R1</text>',
+  dpad:'<path d="M15 3h10v12h12v10H25v12H15V25H3V15h12z" fill="#1d2433" stroke="#c8cfe0" stroke-width="2" stroke-linejoin="round"/>',
+  up:'<path d="M15 3h10v12h12v10H25v12H15V25H3V15h12z" fill="#1d2433" stroke="#c8cfe0" stroke-width="2" stroke-linejoin="round"/><path d="M20 6.5L25 13H15Z" fill="#ffb347"/>',
+  down:'<path d="M15 3h10v12h12v10H25v12H15V25H3V15h12z" fill="#1d2433" stroke="#c8cfe0" stroke-width="2" stroke-linejoin="round"/><path d="M20 33.5L25 27H15Z" fill="#ffb347"/>',
+  left:'<path d="M15 3h10v12h12v10H25v12H15V25H3V15h12z" fill="#1d2433" stroke="#c8cfe0" stroke-width="2" stroke-linejoin="round"/><path d="M6.5 20L13 15V25Z" fill="#ffb347"/>',
+  right:'<path d="M15 3h10v12h12v10H25v12H15V25H3V15h12z" fill="#1d2433" stroke="#c8cfe0" stroke-width="2" stroke-linejoin="round"/><path d="M33.5 20L27 15V25Z" fill="#ffb347"/>'
+};
+function icon(names,size){return names.split(' ').map(function(n){return '<svg class="glyph" viewBox="0 0 40 40" width="'+(size||34)+'" height="'+(size||34)+'">'+GLYPH[n]+'</svg>'}).join('')}
+function hints(){var h={home:[['cross','Open'],['triangle','Search']],search:[['cross','Keyboard'],['r2','Search'],['square','Forget'],['circle','Home']],
+  list:[['cross','Open'],['square','Sort'],['l1 r1','Page'],['circle','Back']],player:[['cross','Play/pause'],['left right','10 s'],['up down','1 min'],['circle','Back']]}[mode];
+  var box=$('hints');box.innerHTML='';h.forEach(function(p){var s=el('span');s.innerHTML=icon(p[0])+'<i>'+p[1]+'</i>';box.appendChild(s)})}function show(m){mode=m;['home','search','list'].forEach(function(s){$(s).className='screen'+(s===m?' on':'')});$('player').className=m==='player'?'on':'';hints();
+  if(m==='search'){searchFocus='field';drawSearch();$('q').focus()}if(m==='list')drawList();if(m==='home')drawHome()}
+function go(m){back.push(mode);show(m)}
+function goBack(){if(back.length)show(back.pop())}
+
+// ---- home ----
+function loadHome(){$('homemsg').textContent='Loading the archive...';
+  json('/api/home').then(function(items){var by={};rows=[];items.forEach(function(it){fixTitle(it);
+      if(!rows.length||rows[rows.length-1].title!==it.row)rows.push({title:it.row,items:[],col:0});rows[rows.length-1].items.push(it)});
+    $('homemsg').textContent='';buildHome();drawHome()})
+  .catch(function(){$('homemsg').innerHTML='The archive could not be reached. Press '+icon('triangle')+' to search.'})}
+function buildHome(){var box=$('rows');box.innerHTML='';rows.forEach(function(r){var d=el('div','row');d.appendChild(el('h2',null,r.title));
+  var s=el('div','shelf');r.items.forEach(function(it){var t=el('div','tile'),p=el('div','pic');p.style.backgroundImage=esc(it.image);
+    if(it.kind==='folder')p.appendChild(el('span','badge',badge(it.path)));t.appendChild(p);t.appendChild(el('div','t',it.title));s.appendChild(t)});
+  d.appendChild(s);box.appendChild(d);r.el=d;r.shelf=s})}
+function drawHome(){rows.forEach(function(r,i){r.el.className='row'+(i===row?' focus':'');
+  Array.prototype.forEach.call(r.shelf.children,function(t,c){t.className='tile'+(i===row&&c===r.col?' focus':'')});
+  r.shelf.style.transform='translateX('+(-Math.max(0,r.col-3)*348)+'px)'});
+  $('rows').style.transform='translateY('+(-Math.max(0,row-1)*300)+'px)'}
+
+// ---- search ----
+function drawSearch(){$('keyhelp').innerHTML=icon('cross')+' opens the keyboard.  '+icon('r2')+' searches.';$('q').className=searchFocus==='field'?'focus':'';var box=$('recent');box.innerHTML='';
+  if(!recent.length)box.appendChild(el('div','label',"Your searches appear here")).style.position='static';
+  recent.forEach(function(r,i){box.appendChild(el('div','pick'+(searchFocus==='recent'&&i===recentFocus?' focus':''),r))})}
+function remember(q){recent=[q].concat(recent.filter(function(r){return r!==q})).slice(0,10);try{localStorage.setItem('recent',JSON.stringify(recent))}catch(e){}}
+var lastSearch=0;
+function runSearch(q){q=q.trim();if(!q||Date.now()-lastSearch<1500)return;lastSearch=Date.now();remember(q);$('q').blur();
+  openList({key:q,search:true,title:'Results for "'+q+'"'})}
+
+// ---- lists ----
+var lists=[]; // lists below the current one, for Back
+function openList(o){if(mode==='list')lists.push(JSON.parse(JSON.stringify(list)));list.key=o.key;list.search=o.search;list.title=o.title;list.sort=0;fetchPage(1)}
+function fetchPage(page){var g=page===1?++list.gen:list.gen;list.loading=true;if(page===1)status(list.search?'Searching...':'Opening...');
+  var url=(list.search?'/api/search?q=':'/api/folder?path=')+encodeURIComponent(list.key)+'&page='+page+'&sort='+SORTS[list.sort].v;
+  json(url).then(function(items){if(g!==list.gen)return;items.forEach(fixTitle);
+    if(page===1){if(list.search)items=seriesFirst(items);if(!items.length){status(list.search?'No playable programmes found.':'Nothing playable here.');list.loading=false;if(mode==='list'&&lists.length&&list.items!==lists[lists.length-1].items){var g2=list.gen;list=lists.pop();list.gen=g2}return}
+      list.items=items;list.version++;list.focus=0;list.page=1;list.more=true;status('');if(mode!=='list')go('list');else drawList()}
+    else{var known={};list.items.forEach(function(i){known[i.path]=1});var n=list.items.length;
+      items.forEach(function(i){if(!known[i.path]){known[i.path]=1;list.items.push(i)}});list.version++;list.page=page;list.more=list.items.length>n;drawList()}
+    list.loading=false})
+  .catch(function(e){if(g!==list.gen)return;list.loading=false;status('The archive could not be reached.')})}
+// The site's search lists programmes only: their series come first, as folders.
+function seriesFirst(items){var seen={},out=[];items.forEach(function(it){var k=it.path.indexOf('/aflevering/');
+  if(it.path.indexOf('/serie/')!==0||k<0||!it.series)return;var p=it.path.slice(0,k);if(seen[p]||out.length>=6)return;seen[p]=1;
+  out.push({title:it.series,image:it.image,kind:'folder',path:p,series:'',date:'',broadcaster:'',description:''})});return out.concat(items)}
+function drawList(){$('listtitle').textContent=list.title;$('sort').textContent=SORTS[list.sort][list.search?'search':'folder'];
+  // Rebuilt only when the items changed; a restored list carries its own version.
+  var box=$('items'),stamp=list.key+'|'+list.sort+'|'+list.version;if(box.dataset.stamp!==stamp){box.innerHTML='';box.dataset.stamp=stamp;
+    list.items.forEach(function(it){var d=el('div','item'),p=el('div','pic'),x=el('div','txt');p.style.backgroundImage=esc(it.image);d.appendChild(p);
+      x.appendChild(el('div','t',it.title+(it.kind==='folder'?'  ›':'')));x.appendChild(el('div','m',it.kind==='folder'?badge(it.path):meta(it)));d.appendChild(x);box.appendChild(d)})}
+  Array.prototype.forEach.call(box.children,function(d,i){d.className='item'+(i===list.focus?' focus':'')});
+  box.style.transform='translateY('+(-Math.max(0,list.focus-3)*118)+'px)';
+  var it=list.items[list.focus];if(!it)return;var det=$('detail');det.querySelector('.pic').style.backgroundImage=esc(it.image);
+  det.querySelector('h1').textContent=it.title;det.querySelector('.m').textContent=it.kind==='folder'?badge(it.path):meta(it);det.querySelector('p').textContent=it.description||'';
+  wantFull(it);
+  if(list.more&&!list.loading&&list.focus>=list.items.length-6)fetchPage(list.page+1)}
+// The site's list data cuts descriptions at 150 characters: the full text comes from the programme's page.
+var fullTimer=0;
+function wantFull(it){clearTimeout(fullTimer);if(it.kind!=='play'||!it.description||it.full||it.fetching||it.description.length<140)return;
+  fullTimer=setTimeout(function(){if(list.items[list.focus]!==it)return;it.fetching=true;
+    json('/api/details?path='+encodeURIComponent(it.path)+'&starts='+encodeURIComponent(it.description.slice(0,40))).then(function(d){it.fetching=false;it.full=true;
+      if(d.description&&d.description.length>it.description.length){it.description=d.description;if(list.items[list.focus]===it)drawList()}}).catch(function(){it.fetching=false})},300)}
+
+function activate(it){if(it.kind==='folder')openList({key:it.path,search:false,title:it.title});else play(it)}
+
+// ---- player ----
+var v=$('v'),player=null,loaded=-1,loadToken=0,barTimer=0,refreshed=false,busy=false;
+var PLAY='<path d="M10 6 L30 18 L10 30 Z" fill="#fff"/>',PAUSE='<rect x="8" y="6" width="7" height="24" fill="#fff"/><rect x="21" y="6" width="7" height="24" fill="#fff"/>';
+function clock(s){if(!isFinite(s)||s<0)s=0;s=Math.floor(s);var h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return (h?h+':'+(m<10?'0':''):'')+m+':'+(x<10?'0':'')+x}
+function drawBar(){var d=v.duration,t=v.currentTime,p=isFinite(d)&&d>0?Math.min(1,t/d):0;$('fill').style.width=$('knob').style.left=(p*100)+'%';
+  $('time').textContent=clock(t)+' / '+(isFinite(d)?clock(d):'--:--');$('state').innerHTML=v.paused?PLAY:PAUSE}
+function showBar(){drawBar();$('bar').className='on';clearTimeout(barTimer);if(!v.paused)barTimer=setTimeout(function(){$('bar').className=''},4000)}
+function pmsg(t,spin){$('pmsg').innerHTML=t||'';$('pspin').className='spin'+(spin?' on':'')}
+function setup(){shaka.polyfill.installAll();player=new shaka.Player(v);player.addEventListener('error',function(e){fail(e.detail,loadToken)});
+  player.configure({drm:{servers:{'com.microsoft.playready':LICENSE},preferredKeySystems:['com.microsoft.playready']}});
+  player.getNetworkingEngine().registerRequestFilter(function(t,r){r.allowCrossSiteCredentials=false})}
+function fail(e,token){if(token!==loadToken)return;var code=e&&e.code;report('Playback error code='+code);
+  if(code===1001&&!refreshed){refreshed=true;var at=v.currentTime,t=++loadToken;pmsg('',true);
+    json('/api/refresh').then(function(j){return player.load(j.manifest,at)}).then(function(){pmsg('');return v.play()}).catch(function(e){fail(e,t)});return}
+  pmsg('This programme could not be played (error '+code+'). Press '+icon('circle')+' to go back.',false)}
+function start(j){var token=++loadToken;loaded=j.id;refreshed=false;$('ptitle').textContent=j.title||'';if(mode!=='player')go('player');pmsg('',true);
+  player.load(j.manifest).then(function(){return v.play().catch(function(){pmsg('Press '+icon('cross')+' to play')})})
+    .then(function(){if(token===loadToken)pmsg('')}).catch(function(e){fail(e,token)})}
+function play(it){if(busy)return;busy=true;status('Opening...');
+  var title=it.series&&it.title.indexOf(it.series)<0?it.series+' - '+it.title:it.title;
+  fetch('/api/play?path='+encodeURIComponent(it.path)+'&title='+encodeURIComponent(title.slice(0,100)))
+    .then(function(r){if(!r.ok)return r.text().then(function(t){throw Error(t||('HTTP '+r.status))})})
+    .then(function(){return json('/api/current')}).then(function(j){status('');start(j)})
+    .catch(function(e){status(e.message||'Could not open the programme')}).then(function(){busy=false})}
+function closePlayer(){v.pause();++loadToken;player.unload().catch(function(){});$('bar').className='';goBack()}
+
+v.addEventListener('playing',function(){pmsg('');showBar()});v.addEventListener('pause',showBar);
+v.addEventListener('waiting',function(){if(v.currentTime>0.5)pmsg('',true)});v.addEventListener('timeupdate',function(){if($('bar').className)drawBar()});
+function seek(by){if(isFinite(v.duration)){v.currentTime=Math.max(0,Math.min(v.duration-1,v.currentTime+by))}showBar()}
+
+// ---- input ----
+function key(k){
+  if(mode==='player'){if(k==='ok'){v.paused?v.play():v.pause();showBar()}else if(k==='left')seek(-10);else if(k==='right')seek(10);
+    else if(k==='up')seek(60);else if(k==='down')seek(-60);else if(k==='back')closePlayer();else showBar();return}
+  if(mode==='home'){if(k==='search'||k==='triangle'){go('search');searchFocus='field';drawSearch();return}if(!rows.length)return;var r=rows[row];
+    if(k==='left')r.col=Math.max(0,r.col-1);else if(k==='right')r.col=Math.min(r.items.length-1,r.col+1);
+    else if(k==='pageup')r.col=Math.max(0,r.col-5);else if(k==='pagedown')r.col=Math.min(r.items.length-1,r.col+5);
+    else if(k==='up')row=Math.max(0,row-1);else if(k==='down')row=Math.min(rows.length-1,row+1);
+    else if(k==='ok')activate(r.items[r.col]);drawHome();return}
+  if(mode==='search'){if(k==='back'){if(Date.now()-lastEdit<800)return;$('q').blur();goBack();return}
+    if(k==='search'||k==='r2'){runSearch($('q').value);return}
+    if(searchFocus==='field'){if(k==='ok'){var q=$('q');
+        // The console opens its keyboard for a click on the field, not for a script's focus().
+        if(document.activeElement===q&&q.value.trim())runSearch(q.value);else{q.focus();q.click()}}
+      else if((k==='right'||k==='down')&&recent.length){$('q').blur();searchFocus='recent';recentFocus=0}}
+    else{if(k==='up'&&recentFocus===0||k==='left'){searchFocus='field'}else if(k==='up')recentFocus--;else if(k==='down')recentFocus=Math.min(recent.length-1,recentFocus+1);
+      else if(k==='ok'){$('q').value=recent[recentFocus];runSearch(recent[recentFocus])}
+      else if(k==='square'){recent.splice(recentFocus,1);try{localStorage.setItem('recent',JSON.stringify(recent))}catch(e){}recentFocus=Math.max(0,Math.min(recentFocus,recent.length-1));if(!recent.length)searchFocus='field'}}
+    drawSearch();return}
+  if(mode==='list'){if(k==='up')list.focus=Math.max(0,list.focus-1);else if(k==='down')list.focus=Math.min(list.items.length-1,list.focus+1);
+    else if(k==='pageup')list.focus=Math.max(0,list.focus-6);else if(k==='pagedown')list.focus=Math.min(list.items.length-1,list.focus+6);
+    else if(k==='ok')activate(list.items[list.focus]);
+    else if(k==='back'){var g=++list.gen;status('');if(lists.length){list=lists.pop();list.gen=g;list.loading=false;drawList()}else goBack();return}
+    else if(k==='square'){list.sort=(list.sort+1)%SORTS.length;fetchPage(1)}drawList()}
+}
+// The PS5 web app has no gamepad interface: every button arrives as a key.
+var lastEdit=0;
+var KEYS={13:'ok',27:'back',8:'back',37:'left',38:'up',39:'right',40:'down',
+  112:'triangle',  // Triangle: search on the home screen, space in the field
+  113:'square',  // Square
+  116:'pageup',  // L1
+  117:'pagedown', // R1
+  119:'r2'        // R2: the console's keyboard marks it as the search key
+};
+document.addEventListener('keydown',function(e){var k=KEYS[e.keyCode];if(!k)return;
+  var field=$('q');
+  if(document.activeElement===field&&e.keyCode===8)return; // the field's own Backspace: Square with the keyboard closed
+  // In the search field Square deletes and Triangle types a space, as on the console's own keyboard.
+  if(document.activeElement===field&&(k==='square'||k==='triangle')){lastEdit=Date.now();field.value=k==='square'?field.value.slice(0,-1):field.value+' ';e.preventDefault();return}
+  if(document.activeElement===$('q')&&k!=='ok'&&k!=='back'&&k!=='down'&&k!=='search'&&k!=='r2')return; // typing in the field
+  e.preventDefault();key(k)});
+$('q').addEventListener('change',function(){runSearch($('q').value)});
+// R2 in the console's keyboard commits the word without sending a key: a word committed and then left alone searches.
+var commitTimer=0;
+$('q').addEventListener('compositionend',function(){clearTimeout(commitTimer);var q=$('q');if(mode!=='search'||!q.value.trim()||/\s$/.test(q.value))return;
+  commitTimer=setTimeout(function(){if(mode==='search')runSearch(q.value)},600)});
+['compositionstart','input'].forEach(function(n){$('q').addEventListener(n,function(){clearTimeout(commitTimer)})});
+
+setup();show('home');loadHome();
+})();
+</script></body></html>

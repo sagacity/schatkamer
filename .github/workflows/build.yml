@@ -1,0 +1,44 @@
+name: Build Schatkamer player
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install the compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang-18 lld-18 llvm-18-dev make pkg-config wget python3
+      - name: Restore the SDK and PacBrew libraries
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .deps
+          key: schatkamer-deps-${{ hashFiles('build.sh', 'tools/setup-pacbrew-dependencies.sh') }}
+      - name: Check the web page script
+        run: |
+          python3 - <<'EOF'
+          import re
+          html = open('src/webui.html', encoding='utf-8').read()
+          open('/tmp/webui.js', 'w', encoding='utf-8').write(re.search(r'<script>(.*)</script>', html, re.S).group(1))
+          EOF
+          node --check /tmp/webui.js
+      - name: Build the installer payload
+        run: bash build.sh
+      - name: Checksum
+        run: sha256sum schatkamer-app.elf | tee schatkamer-app.elf.sha256
+      - name: Upload the payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: schatkamer-player-${{ github.sha }}
+          path: |
+            schatkamer-app.elf
+            schatkamer-app.elf.sha256
+          if-no-files-found: error

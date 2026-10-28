@@ -1,0 +1,5 @@
+# Fetched toolchains and build output
+.deps/
+build/
+*.elf
+.idea/workspace.xml

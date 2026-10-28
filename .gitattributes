@@ -1,0 +1,8 @@
+# The build runs in WSL: keep LF everywhere.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.dds binary
+*.at9 binary
+*.ogg binary
+*.huifont binary
